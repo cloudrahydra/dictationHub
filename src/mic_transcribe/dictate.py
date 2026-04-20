@@ -17,7 +17,7 @@ from mic_transcribe.mic import SAMPLE_RATE, CHANNELS
 # VAD parameters
 BLOCK_DURATION = 0.05  # 50ms blocks for responsiveness
 ENERGY_THRESHOLD = 0.01  # RMS energy threshold for speech detection
-SILENCE_TIMEOUT = 1.5  # seconds of silence before finalizing utterance
+SILENCE_TIMEOUT = 0.4  # seconds of silence before finalizing utterance
 MIN_UTTERANCE_DURATION = 0.3  # ignore very short blips
 
 
@@ -26,7 +26,7 @@ def _find_typer():
     if shutil.which("xdotool"):
         def type_text(text):
             subprocess.run(
-                ["xdotool", "type", "--clearmodifiers", "--delay", "12", "--", text],
+                ["xdotool", "type", "--clearmodifiers", "--delay", "2", "--", text],
                 check=True,
             )
         return "xdotool", type_text

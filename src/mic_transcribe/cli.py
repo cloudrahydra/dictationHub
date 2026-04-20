@@ -135,8 +135,8 @@ install one backend at a time (or clone into separate dirs):
     parser.add_argument(
         "--silence-timeout",
         type=float,
-        default=1.5,
-        help="Seconds of silence before finalizing an utterance in dictation mode (default: 1.5)",
+        default=0.4,
+        help="Seconds of silence before finalizing an utterance in dictation mode (default: 0.4)",
     )
     parser.add_argument(
         "--reset-stats",
