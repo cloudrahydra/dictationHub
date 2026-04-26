@@ -2,13 +2,18 @@
 
 Live microphone transcription using state-of-the-art ASR models.
 
-Supports three backends (install one at a time — they have conflicting dependencies):
+Supports six backends:
 
 | Backend | Model | Languages | Notes |
 |---------|-------|-----------|-------|
 | `cohere` | [CohereLabs/cohere-transcribe-03-2026](https://huggingface.co/CohereLabs/cohere-transcribe-03-2026) | 14 | Gated model, needs `huggingface-cli login` |
 | `qwen` | [Qwen/Qwen3-ASR-1.7B](https://github.com/QwenLM/Qwen3-ASR) | 52 | Auto language detection |
-| `canary` | [nvidia/canary-qwen-2.5b](https://huggingface.co/nvidia/canary-qwen-2.5b) | English only | Heaviest install (NeMo from git) |
+| `parakeet` | [nvidia/parakeet-ctc-1.1b](https://huggingface.co/nvidia/parakeet-ctc-1.1b) | English | Fast CTC model, lightweight install |
+| `parakeet-v2` | [nvidia/parakeet-tdt-0.6b-v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) | English | TDT architecture, NeMo (heavy install) |
+| `parakeet-v3` | [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) | English | TDT improved, lightweight install |
+| `canary` | [nvidia/canary-qwen-2.5b](https://huggingface.co/nvidia/canary-qwen-2.5b) | English | Largest NVIDIA model, NeMo (heavy install) |
+
+Most backends have conflicting dependencies — install one at a time (or clone into separate directories). The exceptions are `qwen`+`parakeet`, which can coexist.
 
 ## Prerequisites
 
@@ -32,15 +37,20 @@ Supports three backends (install one at a time — they have conflicting depende
 ## Setup
 
 ```bash
-# Install base + one backend
-uv sync --extra qwen       # recommended: easiest install, 52 languages
-# OR
-uv sync --extra cohere     # best English WER, but gated model
-# OR
-uv sync --extra canary     # NVIDIA NeMo ecosystem
+# Lightweight options (recommended)
+uv sync --extra qwen         # 52 languages, auto-detect
+uv sync --extra parakeet     # English, fast CTC
+uv sync --extra parakeet-v3  # English, TDT improved
+
+# Gated model (requires huggingface-cli login)
+uv sync --extra cohere
+
+# NeMo-based (heavy install — builds from git)
+uv sync --extra parakeet-v2
+uv sync --extra canary
 ```
 
-For Cohere, you also need to accept the model terms and log in:
+For Cohere, accept the model terms and log in:
 ```bash
 uv run huggingface-cli login
 ```
@@ -65,6 +75,9 @@ uv run mic-transcribe --backend qwen --language English
 # Continuous mode: transcribe 10s chunks in a loop
 uv run mic-transcribe --backend cohere --language en --duration 10 --continuous
 
+# Dictation mode: stream mic and type transcribed text as keyboard input
+uv run mic-transcribe --backend parakeet-v2 --dictate
+
 # List audio input devices
 uv run mic-transcribe --list-devices
 
@@ -78,17 +91,20 @@ uv run mic-transcribe --save-audio recording.wav
 ## Options
 
 ```
--b, --backend {cohere,qwen,canary}  ASR backend (auto-detected if omitted)
--d, --duration SECS                 Fixed recording duration (default: until Enter)
--l, --language LANG                 Language code/name
---device INDEX                      Audio input device index
---list-devices                      List available input devices
---save-audio PATH                   Save recorded audio to WAV
---continuous                        Loop: record + transcribe repeatedly
+-b, --backend BACKEND       ASR backend (auto-detected if omitted)
+                            choices: cohere, qwen, parakeet, parakeet-v2, parakeet-v3, canary
+-d, --duration SECS         Fixed recording duration (default: until Enter)
+-l, --language LANG         Language code/name (e.g. 'en', 'English')
+--device INDEX              Audio input device index (see --list-devices)
+--list-devices              List available input devices and exit
+--save-audio PATH           Save recorded audio to a WAV file
+--continuous                Loop: record + transcribe repeatedly (requires --duration)
+--dictate                   Dictation mode: stream mic and type transcribed text as keyboard input
+--threshold FLOAT           Speech energy threshold for dictation mode (default: 0.01)
+--silence-timeout SECS      Silence before finalizing an utterance in dictation mode (default: 0.4)
+--reset-stats               Clear accumulated inference stats for the selected backend before starting
 ```
 
 ## GPU
 
-All three models benefit significantly from a CUDA GPU. They will fall back to CPU
-but transcription will be slow. A GPU with at least 6GB VRAM is recommended for
-the 1.7B-2.5B parameter models.
+All models benefit significantly from a CUDA GPU and will fall back to CPU if unavailable (slow). A GPU with at least 6 GB VRAM is recommended. The NeMo-based backends (`parakeet-v2`, `canary`) require torch 2.6–2.7.
